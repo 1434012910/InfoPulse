@@ -1,0 +1,220 @@
+{
+    "sources": [
+        {
+            "name": "今日头条-App",
+            "enabled": true,
+            "type": "app",
+            "method": "reverse",
+            "js_file": "js_reverse/toutiao_app.js",
+            "url": "https://api.toutiaoapi.com/api/news/feed/v88/",
+            "interval": 300,
+            "retry_times": 3,
+            "retry_interval": 10,
+            "timeout": 30,
+            "incremental": true,
+            "proxy": {
+                "enabled": false
+            },
+            "headers": {
+                "User-Agent": "Mozilla/5.0 (Linux; Android 12; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+            },
+            "params": {
+                "category": "news_hot",
+                "max_behot_time": 0
+            },
+            "parse_config": {
+                "list_path": "data",
+                "fields": {
+                    "title": "title",
+                    "url": "source_url",
+                    "publish_time": "behot_time",
+                    "source": "source"
+                }
+            }
+        },
+        {
+            "name": "今日头条-Web",
+            "enabled": true,
+            "type": "web",
+            "method": "reverse",
+            "js_file": "js_reverse/toutiao_web.js",
+            "url": "https://www.toutiao.com/api/pc/feed/",
+            "interval": 600,
+            "retry_times": 3,
+            "retry_interval": 10,
+            "timeout": 30,
+            "incremental": true,
+            "proxy": {
+                "enabled": false
+            },
+            "headers": {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            },
+            "cookies": {},
+            "params": {
+                "category": "pc_profile_channel",
+                "max_behot_time": 0
+            },
+            "parse_config": {
+                "list_path": "data",
+                "fields": {
+                    "title": "title",
+                    "url": "source_url",
+                    "publish_time": "behot_time",
+                    "source": "source"
+                }
+            }
+        },
+        {
+            "name": "新浪新闻-Web",
+            "enabled": true,
+            "type": "web",
+            "method": "static",
+            "url": "https://news.sina.com.cn/",
+            "interval": 600,
+            "retry_times": 3,
+            "retry_interval": 10,
+            "timeout": 30,
+            "incremental": true,
+            "proxy": {
+                "enabled": false
+            },
+            "headers": {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            },
+            "cookies": {},
+            "parse_config": {
+                "list_selector": ".news-item",
+                "fields": {
+                    "title": {
+                        "selector": "h2 a",
+                        "attr": "text"
+                    },
+                    "url": {
+                        "selector": "h2 a",
+                        "attr": "href"
+                    },
+                    "publish_time": {
+                        "selector": ".time",
+                        "attr": "text"
+                    },
+                    "source": {
+                        "selector": ".source",
+                        "attr": "text"
+                    }
+                }
+            }
+        },
+        {
+            "name": "网易新闻-Web",
+            "enabled": true,
+            "type": "web",
+            "method": "direct",
+            "url": "https://news.163.com/special/cm_yaowen20200213/",
+            "interval": 600,
+            "retry_times": 3,
+            "retry_interval": 10,
+            "timeout": 30,
+            "incremental": true,
+            "proxy": {
+                "enabled": false
+            },
+            "headers": {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            },
+            "cookies": {},
+            "parse_config": {
+                "list_selector": ".news_item",
+                "fields": {
+                    "title": {
+                        "selector": "h3 a",
+                        "attr": "text"
+                    },
+                    "url": {
+                        "selector": "h3 a",
+                        "attr": "href"
+                    },
+                    "publish_time": {
+                        "selector": ".time",
+                        "attr": "text"
+                    },
+                    "source": {
+                        "selector": ".source",
+                        "attr": "text"
+                    }
+                }
+            }
+        },
+        {
+            "name": "腾讯新闻-App",
+            "enabled": true,
+            "type": "app",
+            "method": "direct",
+            "url": "https://i.news.qq.com/trpc.qqnews_web.kv_srv.kv_srv_http/list?sub_srv_id=24hours",
+            "interval": 300,
+            "retry_times": 3,
+            "retry_interval": 10,
+            "timeout": 30,
+            "incremental": true,
+            "proxy": {
+                "enabled": false
+            },
+            "headers": {
+                "User-Agent": "Mozilla/5.0 (Linux; Android 12; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+            },
+            "params": {
+                "offset": 0,
+                "limit": 20
+            },
+            "parse_config": {
+                "list_path": "data.list",
+                "fields": {
+                    "title": "title",
+                    "url": "url",
+                    "publish_time": "publish_time",
+                    "source": "source"
+                }
+            }
+        },
+        {
+            "name": "澎湃新闻-Web",
+            "enabled": true,
+            "type": "web",
+            "method": "static",
+            "url": "https://www.thepaper.cn/",
+            "interval": 600,
+            "retry_times": 3,
+            "retry_interval": 10,
+            "timeout": 30,
+            "incremental": true,
+            "proxy": {
+                "enabled": false
+            },
+            "headers": {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            },
+            "cookies": {},
+            "parse_config": {
+                "list_selector": ".news_li",
+                "fields": {
+                    "title": {
+                        "selector": "h2 a",
+                        "attr": "text"
+                    },
+                    "url": {
+                        "selector": "h2 a",
+                        "attr": "href"
+                    },
+                    "publish_time": {
+                        "selector": ".time",
+                        "attr": "text"
+                    },
+                    "source": {
+                        "selector": ".source",
+                        "attr": "text"
+                    }
+                }
+            }
+        }
+    ]
+}

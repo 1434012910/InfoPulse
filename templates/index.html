@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}InfoPulse - 资讯采集管理平台{% endblock %}
+
+{% block content %}
+<div class="text-center py-5">
+    <h1 class="display-4 mb-4">InfoPulse</h1>
+    <p class="lead mb-5">智能资讯采集管理平台</p>
+    
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title mb-4">系统概览</h5>
+                    <div class="row text-center">
+                        <div class="col-md-4">
+                            <div class="p-3">
+                                <i class="bi bi-speedometer2 text-primary" style="font-size: 3rem;"></i>
+                                <h6 class="mt-3">实时监控</h6>
+                                <p class="text-muted small">实时查看采集任务运行状态</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3">
+                                <i class="bi bi-gear text-success" style="font-size: 3rem;"></i>
+                                <h6 class="mt-3">灵活配置</h6>
+                                <p class="text-muted small">可视化管理采集源配置</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3">
+                                <i class="bi bi-shield-check text-warning" style="font-size: 3rem;"></i>
+                                <h6 class="mt-3">智能反爬</h6>
+                                <p class="text-muted small">内置多种反爬机制</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-4">
+                <a href="/dashboard" class="btn btn-primary btn-lg me-3">
+                    <i class="bi bi-speedometer2 me-2"></i>进入仪表盘
+                </a>
+                <a href="/tasks" class="btn btn-outline-primary btn-lg">
+                    <i class="bi bi-list-task me-2"></i>任务管理
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-collection me-2"></i>多源采集</h5>
+                <p class="card-text">支持App端和Web端多种采集方式，包括接口逆向、直连、静态解析等。</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-arrow-repeat me-2"></i>增量更新</h5>
+                <p class="card-text">智能增量采集机制，只抓取新增或更新的内容，提高采集效率。</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-diagram-3 me-2"></i>扩展性强</h5>
+                <p class="card-text">采用工厂模式和策略模式，新增采集源只需添加配置文件。</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

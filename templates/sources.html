@@ -1,0 +1,287 @@
+{% extends "base.html" %}
+
+{% block title %}采集源管理 - InfoPulse{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>采集源管理</h2>
+    <button class="btn btn-primary" onclick="showAddSourceModal()">
+        <i class="bi bi-plus-lg me-2"></i>添加采集源
+    </button>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>名称</th>
+                        <th>类型</th>
+                        <th>采集方式</th>
+                        <th>状态</th>
+                        <th>采集间隔</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="sourcesTableBody">
+                    <tr>
+                        <td colspan="6" class="text-center">加载中...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="sourceModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="sourceModalTitle">添加采集源</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="sourceForm">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">采集源名称</label>
+                            <input type="text" class="form-control" name="name" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">类型</label>
+                            <select class="form-select" name="type" required>
+                                <option value="web">Web端</option>
+                                <option value="app">App端</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">采集方式</label>
+                            <select class="form-select" name="method" required>
+                                <option value="direct">直连</option>
+                                <option value="static">静态解析</option>
+                                <option value="reverse">逆向</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">采集间隔(秒)</label>
+                            <input type="number" class="form-control" name="interval" value="60" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">请求地址</label>
+                        <input type="url" class="form-control" name="url" required>
+                    </div>
+                    <div class="mb-3" id="jsFileGroup" style="display: none;">
+                        <label class="form-label">JS逆向文件</label>
+                        <input type="text" class="form-control" name="js_file" placeholder="js_reverse/xxx.js">
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">重试次数</label>
+                            <input type="number" class="form-control" name="retry_times" value="3">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">重试间隔(秒)</label>
+                            <input type="number" class="form-control" name="retry_interval" value="10">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">超时时间(秒)</label>
+                            <input type="number" class="form-control" name="timeout" value="30">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="enabled" checked>
+                                <label class="form-check-label">启用</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="incremental">
+                                <label class="form-check-label">增量采集</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">解析配置 (JSON)</label>
+                        <textarea class="form-control" name="parse_config" rows="5" placeholder='{"list_selector": ".news-item", "fields": {"title": {"selector": "h2 a", "attr": "text"}}}'></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveSource()">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let currentSourceName = null;
+
+    function loadSources() {
+        $.get('/api/sources', function(sources) {
+            let html = '';
+            sources.forEach(function(source) {
+                const config = source.config || {};
+                const enabledBadge = source.enabled ? 
+                    '<span class="badge bg-success">启用</span>' : 
+                    '<span class="badge bg-secondary">禁用</span>';
+                
+                html += `
+                    <tr>
+                        <td><strong>${source.name}</strong></td>
+                        <td>${config.type || '-'}</td>
+                        <td>${config.method || '-'}</td>
+                        <td>${enabledBadge}</td>
+                        <td>${config.interval || '-'} 秒</td>
+                        <td>
+                            <div class="btn-group">
+                                <button class="btn btn-sm btn-outline-primary" onclick="editSource('${source.name}')">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteSource('${source.name}')">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+            $('#sourcesTableBody').html(html || '<tr><td colspan="6" class="text-center">暂无采集源</td></tr>');
+        });
+    }
+
+    function showAddSourceModal() {
+        currentSourceName = null;
+        $('#sourceModalTitle').text('添加采集源');
+        $('#sourceForm')[0].reset();
+        $('#sourceForm input[name="enabled"]').prop('checked', true);
+        $('#jsFileGroup').hide();
+        $('#sourceModal').modal('show');
+    }
+
+    function editSource(name) {
+        currentSourceName = name;
+        $('#sourceModalTitle').text('编辑采集源');
+        
+        $.get(`/api/sources/${name}`, function(source) {
+            const config = source.config || {};
+            const form = $('#sourceForm');
+            
+            form.find('input[name="name"]').val(source.name);
+            form.find('select[name="type"]').val(config.type || 'web');
+            form.find('select[name="method"]').val(config.method || 'direct');
+            form.find('input[name="interval"]').val(config.interval || 60);
+            form.find('input[name="url"]').val(config.url || '');
+            form.find('input[name="js_file"]').val(config.js_file || '');
+            form.find('input[name="retry_times"]').val(config.retry_times || 3);
+            form.find('input[name="retry_interval"]').val(config.retry_interval || 10);
+            form.find('input[name="timeout"]').val(config.timeout || 30);
+            form.find('input[name="enabled"]').prop('checked', source.enabled);
+            form.find('input[name="incremental"]').prop('checked', config.incremental || false);
+            
+            if (config.parse_config) {
+                form.find('textarea[name="parse_config"]').val(JSON.stringify(config.parse_config, null, 2));
+            }
+            
+            toggleJsFileField(config.method);
+            $('#sourceModal').modal('show');
+        });
+    }
+
+    function saveSource() {
+        const form = $('#sourceForm');
+        const formData = {
+            name: form.find('input[name="name"]').val(),
+            type: form.find('select[name="type"]').val(),
+            method: form.find('select[name="method"]').val(),
+            interval: parseInt(form.find('input[name="interval"]').val()),
+            url: form.find('input[name="url"]').val(),
+            retry_times: parseInt(form.find('input[name="retry_times"]').val()),
+            retry_interval: parseInt(form.find('input[name="retry_interval"]').val()),
+            timeout: parseInt(form.find('input[name="timeout"]').val()),
+            enabled: form.find('input[name="enabled"]').is(':checked'),
+            incremental: form.find('input[name="incremental"]').is(':checked'),
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+        };
+
+        if (formData.method === 'reverse') {
+            formData.js_file = form.find('input[name="js_file"]').val();
+        }
+
+        const parseConfigStr = form.find('textarea[name="parse_config"]').val();
+        if (parseConfigStr) {
+            try {
+                formData.parse_config = JSON.parse(parseConfigStr);
+            } catch (e) {
+                showAlert('解析配置JSON格式错误', 'danger');
+                return;
+            }
+        }
+
+        const url = currentSourceName ? `/api/sources/${currentSourceName}` : '/api/sources';
+        const method = currentSourceName ? 'PUT' : 'POST';
+
+        $.ajax({
+            url: url,
+            method: method,
+            contentType: 'application/json',
+            data: JSON.stringify(formData),
+            success: function(data) {
+                if (data.success) {
+                    showAlert(currentSourceName ? '采集源更新成功' : '采集源添加成功');
+                    $('#sourceModal').modal('hide');
+                    loadSources();
+                } else {
+                    showAlert('操作失败', 'danger');
+                }
+            },
+            error: function() {
+                showAlert('请求失败', 'danger');
+            }
+        });
+    }
+
+    function deleteSource(name) {
+        if (confirm(`确定要删除采集源 "${name}" 吗？`)) {
+            $.ajax({
+                url: `/api/sources/${name}`,
+                method: 'DELETE',
+                success: function(data) {
+                    if (data.success) {
+                        showAlert('采集源删除成功');
+                        loadSources();
+                    } else {
+                        showAlert('删除失败', 'danger');
+                    }
+                }
+            });
+        }
+    }
+
+    function toggleJsFileField(method) {
+        if (method === 'reverse') {
+            $('#jsFileGroup').show();
+        } else {
+            $('#jsFileGroup').hide();
+        }
+    }
+
+    $('select[name="method"]').change(function() {
+        toggleJsFileField($(this).val());
+    });
+
+    $(document).ready(function() {
+        loadSources();
+    });
+</script>
+{% endblock %}

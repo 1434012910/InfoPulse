@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+
+{% block title %}仪表盘 - InfoPulse{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>仪表盘</h2>
+    <button class="btn btn-primary" onclick="refreshData()">
+        <i class="bi bi-arrow-clockwise me-2"></i>刷新数据
+    </button>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card stat-card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title mb-0">总任务数</h6>
+                        <h2 class="mb-0" id="totalTasks">-</h2>
+                    </div>
+                    <i class="bi bi-list-task" style="font-size: 2rem;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title mb-0">运行中任务</h6>
+                        <h2 class="mb-0" id="runningTasks">-</h2>
+                    </div>
+                    <i class="bi bi-play-circle" style="font-size: 2rem;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title mb-0">总采集数量</h6>
+                        <h2 class="mb-0" id="totalNews">-</h2>
+                    </div>
+                    <i class="bi bi-newspaper" style="font-size: 2rem;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title mb-0">调度器状态</h6>
+                        <h2 class="mb-0" id="schedulerStatus">-</h2>
+                    </div>
+                    <i class="bi bi-gear" style="font-size: 2rem;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">采集源统计</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="sourceChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">最新采集日志</h5>
+            </div>
+            <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                <div id="recentLogs">
+                    <p class="text-muted">加载中...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">任务列表</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>采集源</th>
+                        <th>状态</th>
+                        <th>上次运行</th>
+                        <th>成功次数</th>
+                        <th>失败次数</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="tasksTableBody">
+                    <tr>
+                        <td colspan="6" class="text-center">加载中...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+    let sourceChart = null;
+
+    function refreshData() {
+        loadStatus();
+        loadTasks();
+        loadLogs();
+        loadStatistics();
+    }
+
+    function loadStatus() {
+        $.get('/api/status', function(data) {
+            $('#totalTasks').text(data.total_tasks || 0);
+            $('#runningTasks').text(data.running_tasks || 0);
+            $('#totalNews').text(data.total_news || 0);
+            $('#schedulerStatus').text(data.scheduler_running ? '运行中' : '已停止');
+        });
+    }
+
+    function loadTasks() {
+        $.get('/api/tasks', function(tasks) {
+            let html = '';
+            tasks.forEach(function(task) {
+                const statusClass = getStatusBadgeClass(task.status);
+                const lastRun = task.last_run ? new Date(task.last_run).toLocaleString() : '从未运行';
+                const collector = task.collector_status || {};
+                
+                html += `
+                    <tr>
+                        <td>${task.source_name}</td>
+                        <td><span class="badge ${statusClass}">${task.status}</span></td>
+                        <td>${lastRun}</td>
+                        <td>${collector.total_success || 0}</td>
+                        <td>${collector.total_failure || 0}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" onclick="runTask('${task.source_name}')">运行</button>
+                            <button class="btn btn-sm btn-outline-warning" onclick="pauseTask('${task.source_name}')">暂停</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            $('#tasksTableBody').html(html || '<tr><td colspan="6" class="text-center">暂无任务</td></tr>');
+        });
+    }
+
+    function loadLogs() {
+        $.get('/api/logs?limit=10', function(logs) {
+            let html = '';
+            logs.forEach(function(log) {
+                const statusClass = log.status === 'success' ? 'text-success' : 'text-danger';
+                const time = new Date(log.created_at).toLocaleString();
+                html += `
+                    <div class="mb-2 p-2 border-bottom">
+                        <div class="d-flex justify-content-between">
+                            <strong>${log.source_name}</strong>
+                            <small class="text-muted">${time}</small>
+                        </div>
+                        <small class="${statusClass}">${log.message || log.status}</small>
+                    </div>
+                `;
+            });
+            $('#recentLogs').html(html || '<p class="text-muted">暂无日志</p>');
+        });
+    }
+
+    function loadStatistics() {
+        $.get('/api/statistics', function(stats) {
+            updateChart(stats.news_by_source || {});
+        });
+    }
+
+    function updateChart(newsBySource) {
+        const ctx = document.getElementById('sourceChart').getContext('2d');
+        
+        if (sourceChart) {
+            sourceChart.destroy();
+        }
+
+        const labels = Object.keys(newsBySource);
+        const data = Object.values(newsBySource);
+
+        if (labels.length === 0) {
+            return;
+        }
+
+        sourceChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: '采集数量',
+                    data: data,
+                    backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function getStatusBadgeClass(status) {
+        switch (status) {
+            case 'running': return 'bg-primary';
+            case 'completed': return 'bg-success';
+            case 'failed': return 'bg-danger';
+            case 'error': return 'bg-danger';
+            case 'paused': return 'bg-warning';
+            case 'scheduled': return 'bg-info';
+            default: return 'bg-secondary';
+        }
+    }
+
+    function runTask(sourceName) {
+        $.post(`/api/tasks/${sourceName}/run`, function(data) {
+            if (data.success) {
+                showAlert('任务已触发');
+                refreshData();
+            } else {
+                showAlert('任务触发失败', 'danger');
+            }
+        });
+    }
+
+    function pauseTask(sourceName) {
+        $.post(`/api/tasks/${sourceName}/pause`, function(data) {
+            if (data.success) {
+                showAlert('任务已暂停');
+                refreshData();
+            } else {
+                showAlert('任务暂停失败', 'danger');
+            }
+        });
+    }
+
+    $(document).ready(function() {
+        refreshData();
+        setInterval(refreshData, 30000);
+    });
+</script>
+{% endblock %}

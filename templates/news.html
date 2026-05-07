@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+
+{% block title %}采集数据 - InfoPulse{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>采集数据</h2>
+    <div>
+        <select class="form-select d-inline-block w-auto me-2" id="sourceFilter">
+            <option value="">所有采集源</option>
+        </select>
+        <input type="text" class="form-control d-inline-block w-auto me-2" id="searchInput" placeholder="搜索标题...">
+        <button class="btn btn-primary" onclick="refreshNews()">
+            <i class="bi bi-arrow-clockwise me-2"></i>刷新
+        </button>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <h5 class="card-title">总数据量</h5>
+                <h2 id="totalNews">-</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <h5 class="card-title">今日采集</h5>
+                <h2 id="todayNews">-</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <h5 class="card-title">采集源数量</h5>
+                <h2 id="sourceCount">-</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>标题</th>
+                        <th>来源</th>
+                        <th>发布时间</th>
+                        <th>采集时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="newsTableBody">
+                    <tr>
+                        <td colspan="5" class="text-center">加载中...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center" id="pagination">
+            </ul>
+        </nav>
+    </div>
+</div>
+
+<div class="modal fade" id="newsDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">新闻详情</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="newsDetailContent">
+                加载中...
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                <a href="#" class="btn btn-primary" id="newsLink" target="_blank">查看原文</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let currentPage = 1;
+    let pageSize = 20;
+    let currentSource = '';
+    let currentSearch = '';
+
+    function refreshNews() {
+        currentSource = $('#sourceFilter').val();
+        currentSearch = $('#searchInput').val();
+        currentPage = 1;
+        loadNews();
+    }
+
+    function loadNews() {
+        loadStatistics();
+        
+        let url = `/api/statistics`;
+        $.get(url, function(stats) {
+            $('#totalNews').text(stats.total_news || 0);
+            $('#todayNews').text(stats.news_today || 0);
+            $('#sourceCount').text(stats.total_sources || 0);
+        });
+
+        loadNewsList();
+    }
+
+    function loadNewsList() {
+        $.get('/api/sources', function(sources) {
+            let allNews = [];
+            let loadedCount = 0;
+            
+            if (sources.length === 0) {
+                renderNewsTable([]);
+                return;
+            }
+
+            sources.forEach(function(source) {
+                $.get(`/api/sources/${source.name}/news?limit=100`, function(news) {
+                    allNews = allNews.concat(news);
+                    loadedCount++;
+                    
+                    if (loadedCount === sources.length) {
+                        allNews.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                        
+                        if (currentSource) {
+                            allNews = allNews.filter(n => n.source_name === currentSource);
+                        }
+                        if (currentSearch) {
+                            allNews = allNews.filter(n => n.title && n.title.includes(currentSearch));
+                        }
+
+                        const totalPages = Math.ceil(allNews.length / pageSize);
+                        const startIndex = (currentPage - 1) * pageSize;
+                        const endIndex = startIndex + pageSize;
+                        const pageNews = allNews.slice(startIndex, endIndex);
+
+                        renderNewsTable(pageNews);
+                        renderPagination(totalPages);
+                    }
+                });
+            });
+        });
+    }
+
+    function renderNewsTable(news) {
+        let html = '';
+        news.forEach(function(item) {
+            const publishTime = item.publish_time ? new Date(item.publish_time).toLocaleString() : '-';
+            const createdTime = item.created_at ? new Date(item.created_at).toLocaleString() : '-';
+            const title = item.title ? item.title.substring(0, 50) + (item.title.length > 50 ? '...' : '') : '-';
+            
+            html += `
+                <tr>
+                    <td>
+                        <a href="#" onclick="viewNewsDetail('${item.url}'); return false;" class="text-decoration-none">
+                            ${title}
+                        </a>
+                    </td>
+                    <td>${item.source_name || '-'}</td>
+                    <td>${publishTime}</td>
+                    <td>${createdTime}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-info" onclick="viewNewsDetail('${item.url}')">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                        ${item.url ? `<a href="${item.url}" target="_blank" class="btn btn-sm btn-outline-primary"><i class="bi bi-link-45deg"></i></a>` : ''}
+                    </td>
+                </tr>
+            `;
+        });
+        $('#newsTableBody').html(html || '<tr><td colspan="5" class="text-center">暂无数据</td></tr>');
+    }
+
+    function renderPagination(totalPages) {
+        let html = '';
+        
+        if (totalPages <= 1) {
+            $('#pagination').html('');
+            return;
+        }
+
+        html += `
+            <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="changePage(${currentPage - 1})">上一页</a>
+            </li>
+        `;
+
+        let startPage = Math.max(1, currentPage - 2);
+        let endPage = Math.min(totalPages, startPage + 4);
+        
+        for (let i = startPage; i <= endPage; i++) {
+            html += `
+                <li class="page-item ${i === currentPage ? 'active' : ''}">
+                    <a class="page-link" href="#" onclick="changePage(${i})">${i}</a>
+                </li>
+            `;
+        }
+
+        html += `
+            <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="changePage(${currentPage + 1})">下一页</a>
+            </li>
+        `;
+
+        $('#pagination').html(html);
+    }
+
+    function changePage(page) {
+        currentPage = page;
+        loadNewsList();
+    }
+
+    function viewNewsDetail(url) {
+        $.get(`/api/news?url=${encodeURIComponent(url)}`, function(news) {
+            if (news) {
+                let html = `
+                    <h4>${news.title || '无标题'}</h4>
+                    <div class="mb-3">
+                        <span class="badge bg-primary me-2">${news.source_name || '-'}</span>
+                        <span class="text-muted">${news.publish_time ? new Date(news.publish_time).toLocaleString() : '-'}</span>
+                    </div>
+                    <div class="mb-3">
+                        <strong>来源：</strong>${news.source || '-'}<br>
+                        <strong>作者：</strong>${news.author || '-'}
+                    </div>
+                    <div class="border p-3" style="max-height: 400px; overflow-y: auto;">
+                        ${news.content || news.summary || '暂无内容'}
+                    </div>
+                `;
+                $('#newsDetailContent').html(html);
+                $('#newsLink').attr('href', news.url || '#');
+                $('#newsDetailModal').modal('show');
+            }
+        });
+    }
+
+    function loadSourceOptions() {
+        $.get('/api/sources', function(sources) {
+            let html = '<option value="">所有采集源</option>';
+            sources.forEach(function(source) {
+                html += `<option value="${source.name}">${source.name}</option>`;
+            });
+            $('#sourceFilter').html(html);
+        });
+    }
+
+    $('#sourceFilter').change(function() {
+        refreshNews();
+    });
+
+    $('#searchInput').on('keyup', function(e) {
+        if (e.key === 'Enter') {
+            refreshNews();
+        }
+    });
+
+    $(document).ready(function() {
+        loadSourceOptions();
+        loadNews();
+    });
+</script>
+{% endblock %}

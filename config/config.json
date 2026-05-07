@@ -1,0 +1,67 @@
+{
+    "redis": {
+        "host": "localhost",
+        "port": 6379,
+        "db": 0,
+        "password": null,
+        "decode_responses": true
+    },
+    "sqlite": {
+        "path": "data/news.db"
+    },
+    "logging": {
+        "level": "INFO",
+        "file": "logs/infopulse.log",
+        "max_size": 10485760,
+        "backup_count": 5,
+        "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    },
+    "alert": {
+        "enabled": false,
+        "wechat": {
+            "webhook_url": "",
+            "mentioned_list": []
+        },
+        "email": {
+            "smtp_server": "",
+            "smtp_port": 465,
+            "sender": "",
+            "password": "",
+            "receivers": []
+        },
+        "failure_threshold": 5,
+        "alert_interval": 3600
+    },
+    "crawler": {
+        "default_timeout": 30,
+        "default_retry_times": 3,
+        "default_retry_interval": 5,
+        "default_interval": 60,
+        "user_agents": [
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15"
+        ],
+        "max_concurrent_requests": 5,
+        "proxy": {
+            "enabled": false,
+            "proxy_pool_url": "",
+            "proxy_list": []
+        }
+    },
+    "dedup": {
+        "bloom_filter_capacity": 1000000,
+        "bloom_filter_error_rate": 0.001,
+        "key_prefix": "infopulse:"
+    },
+    "web_admin": {
+        "host": "0.0.0.0",
+        "port": 5000,
+        "debug": false,
+        "secret_key": "infopulse-secret-key-change-in-production"
+    },
+    "scheduler": {
+        "timezone": "Asia/Shanghai",
+        "max_workers": 4
+    }
+}
